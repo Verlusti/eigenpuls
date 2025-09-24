@@ -12,6 +12,15 @@ license = "Apache-2.0"
 authors = [
   { name = "Eigenpuls Maintainers", email = "maintainers@example.com" }
 ]
+keywords = ["healthcheck", "monitoring", "cli", "fastapi"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: POSIX :: Linux",
+  "Environment :: Console",
+  "Framework :: FastAPI",
+]
 dependencies = [
   "fastapi",
   "uvicorn",
@@ -26,6 +35,9 @@ eigenpuls = "eigenpuls.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["eigenpuls*"]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"
