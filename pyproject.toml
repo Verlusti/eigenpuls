@@ -21,6 +21,7 @@ classifiers = [
   "Environment :: Console",
   "Framework :: FastAPI",
 ]
+license-files = ["LICENSE"]
 dependencies = [
   "fastapi",
   "uvicorn",
@@ -36,12 +37,9 @@ eigenpuls = "eigenpuls.__main__:main"
 [tool.setuptools.packages.find]
 include = ["eigenpuls*"]
 
-[tool.setuptools]
-license-files = ["LICENSE"]
-
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"
-local_scheme = "node-and-date"
+local_scheme = "no-local-version"
 fallback_version = "0.0.0"
 
 [tool.ruff]
