@@ -1,0 +1,13 @@
+.git
+.gitignore
+.vscode
+.idea
+.pytest_cache
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+config/*.local.yaml

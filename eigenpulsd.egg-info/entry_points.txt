@@ -1,0 +1,2 @@
+[console_scripts]
+eigenpulsd = eigenpuls.cli:app

@@ -1,0 +1,2 @@
+[console_scripts]
+eigenpuls = eigenpuls.__main__:main

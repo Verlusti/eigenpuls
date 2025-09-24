@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eigenpuls"
+dynamic = ["version"]
+description = "Container-native autonomous health checker daemon aggregating CLI-based probes with a unified API"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [
+  { name = "Eigenpuls Maintainers", email = "maintainers@example.com" }
+]
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "pydantic",
+  "pydantic-settings",
+  "PyYAML",
+  "fire",
+]
+
+[project.scripts]
+eigenpuls = "eigenpuls.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["eigenpuls*"]
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+local_scheme = "node-and-date"
+fallback_version = "0.0.0"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+
+

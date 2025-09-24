@@ -1,0 +1,12 @@
+services:
+  eigenpuls:
+    build:
+      context: .
+    image: eigenpuls:dev
+    ports:
+      - "4242:4242"
+
+
+
+
+

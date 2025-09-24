@@ -1,0 +1,10 @@
+port: 4242
+host: 0.0.0.0
+interval_seconds: 10
+services:
+  - name: rabbitmq@main
+    type: rabbitmq
+    host: rabbitmq
+    port: 5672
+    user: guest
+    password: guest
