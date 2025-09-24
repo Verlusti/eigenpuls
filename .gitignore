@@ -27,6 +27,7 @@ poetry.lock
 config/*.local.yaml
 dist/
 
+*.egg-info/*
 *.egg-info/
 *.egg-info
 .ruff_cache/
