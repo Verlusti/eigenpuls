@@ -37,6 +37,9 @@ eigenpuls = "eigenpuls.__main__:main"
 [tool.setuptools.packages.find]
 include = ["eigenpuls*"]
 
+[tool.setuptools.package-data]
+eigenpuls = ["resources/*"]
+
 [tool.setuptools_scm]
 version_scheme = "no-guess-dev"
 local_scheme = "no-local-version"
