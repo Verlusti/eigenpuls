@@ -1,6 +1,10 @@
+.dockerignore
 .gitignore
+Dockerfile
 LICENSE
 README.md
+docker-compose.yml
+eigenpuls.yaml
 pyproject.toml
 eigenpuls/__init__.py
 eigenpuls/__main__.py
@@ -16,4 +20,11 @@ eigenpuls.egg-info/top_level.txt
 eigenpuls/service/__init__.py
 eigenpuls/service/base.py
 eigenpuls/service/registry.py
+eigenpuls/service/models/__init__.py
 eigenpuls/service/models/rabbitmq.py
+eigenpulsd.egg-info/PKG-INFO
+eigenpulsd.egg-info/SOURCES.txt
+eigenpulsd.egg-info/dependency_links.txt
+eigenpulsd.egg-info/entry_points.txt
+eigenpulsd.egg-info/requires.txt
+eigenpulsd.egg-info/top_level.txt

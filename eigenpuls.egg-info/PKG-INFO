@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: eigenpuls
-Version: 0.0.0.post1.dev1+gfedd1b1de.d20250924
+Version: 0.1.0.post1.dev0+g8111ed08a.d20250924
 Summary: Container-native autonomous health checker daemon aggregating CLI-based probes with a unified API
 Author-email: Eigenpuls Maintainers <maintainers@example.com>
 License-Expression: Apache-2.0

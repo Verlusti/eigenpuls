@@ -28,6 +28,7 @@ config/*.local.yaml
 dist/
 
 *.egg-info/
+*.egg-info
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
