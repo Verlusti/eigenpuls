@@ -100,11 +100,11 @@ class CLI:
 
 
     def dockerfile(self) -> str:
-        # Return the Sample Dockerfile.eigenpuls relative from this file
-        from importlib.resources import files
-        dockerfile = files("eigenpuls.resources").joinpath("Dockerfile.eigenpuls").read_text(encoding="utf-8")
-        dockerfile = dockerfile.replace("${EIGENPULS_VERSION}", self.version())
-        return dockerfile
+        from .config import AppConfig
+        
+        cfg = AppConfig()    
+        print(cfg.dockerfile())
+        return cfg.dockerfile()
 
 
 def main():

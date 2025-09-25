@@ -93,3 +93,12 @@ class AppConfig(BaseSettings):
             dotenv_settings,
             file_secret_settings,
         )
+
+
+    def dockerfile(self) -> str:
+        from importlib.resources import files
+        from eigenpuls import __version__
+
+        dockerfile = files("eigenpuls.resources").joinpath("Dockerfile.eigenpuls").read_text(encoding="utf-8")
+        dockerfile = dockerfile.replace("${EIGENPULS_VERSION}", __version__)
+        return dockerfile
