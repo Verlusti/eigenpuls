@@ -1,5 +1,9 @@
-from eigenpuls.service.registry import service_registry
-from eigenpuls.service.base import KnownServiceType, Service, SystemPackageType, ServiceStatus, ServiceHealth
 from .rabbitmq import RabbitMQService
+from .postgres import PostgresService
+from .redis import RedisService
 
-__all__ = ["service_registry", "KnownServiceType", "Service", "SystemPackageType", "ServiceStatus", "ServiceHealth", "RabbitMQService"]
+__all__ = [
+    "RabbitMQService",
+    "PostgresService",
+    "RedisService",
+]

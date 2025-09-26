@@ -107,6 +107,12 @@ class CLI:
         return cfg.dockerfile()
 
 
+    def list_services(self) -> None:
+        from .service import Implementations
+        for svc in Implementations.values():
+            print(f"  - {svc.__name__} [{svc.__module__}]")
+
+
 def main():
     import os
     os.environ["PAGER"] = "cat"
