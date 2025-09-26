@@ -29,6 +29,9 @@ class KnownServiceType(str, Enum):
     REDIS = "redis"
     POSTGRES = "postgres"
     RABBITMQ = "rabbitmq"
+    CELERY_WORKER = "celery-worker"
+    CELERY_BEAT = "celery-beat"
+    CELERY_FLOWER = "celery-flower"
 
 
 class ServiceHealth(str, Enum):
