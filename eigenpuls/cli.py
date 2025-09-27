@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from .config import DEFAULT_HOST, DEFAULT_PORT
-
 import os
 from typing import Optional
 
@@ -19,7 +17,7 @@ class CLI:
             return "0+unknown"
 
 
-    def serve(self, host: Optional[str] = DEFAULT_HOST, port: Optional[int] = DEFAULT_PORT, config: Optional[str] = None) -> None:
+    def serve(self, host: Optional[str] = None, port: Optional[int] = None, config: Optional[str] = None) -> None:
         from .config import AppConfig
         from .api import app
 

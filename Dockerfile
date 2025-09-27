@@ -53,6 +53,7 @@ RUN set -eux; \
       rm -rf /var/lib/apt/lists/*; \
     fi
 
+COPY eigenpuls.yaml /app/eigenpuls.yaml
 ENV EIGENPULS_CONFIG=/app/eigenpuls.yaml
 EXPOSE 4242
 CMD ["python", "-m", "eigenpuls", "serve", "-c", "/app/eigenpuls.yaml"]

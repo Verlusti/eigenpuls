@@ -10,36 +10,37 @@ from eigenpuls.service.registry import service_registry
 from typing import List
 
 
-class PostgresService(Service):
+class DNSService(Service):
     def __init__(self, name: str, **data):
-        super().__init__(name=name, type=KnownServiceType.POSTGRES, **data)
+        super().__init__(name=name, type=KnownServiceType.DNS, **data)
 
     async def run(self) -> ServiceStatus:
-        # Use pg_isready only; no fallbacks
-        missing = self.binaries_missing(["pg_isready"])  # returns list
+        # Use dig only; no fallbacks
+        missing = self.binaries_missing(["dig"])  # returns list
         if missing:
             pkgs = ", ".join(self.get_system_packages(SystemPackageType.detect_by_os()))
             return ServiceStatus(
                 status=ServiceHealth.ERROR,
-                details=f"Missing postgres client binaries. Install packages: {pkgs}",
+                details=f"Missing DNS client binaries. Install packages: {pkgs}",
             )
 
-        cmd = self.replace_placeholders("pg_isready -h %host% -p %port% -U %user%")
+        # Resolve A record; success if output not empty
+        cmd = self.replace_placeholders("dig +short %host% A")
         code, out, err = await self.run_shell_async(cmd)
-        if code == 0:
-            return ServiceStatus(status=ServiceHealth.OK, details="pg_isready ok")
+        if code == 0 and out.strip():
+            return ServiceStatus(status=ServiceHealth.OK, details="dns resolve ok")
         return ServiceStatus(status=ServiceHealth.ERROR, details=err or out or f"exit={code}")
 
     def build_command(self) -> str:
-        return self.replace_placeholders("pg_isready -h %host% -p %port% -U %user%")
+        return self.replace_placeholders("dig +short %host% A")
 
     def get_system_packages(self, package_type: SystemPackageType) -> List[str]:
         match package_type:
             case SystemPackageType.APT:
-                # pg_isready and psql are part of postgresql-client
-                return ["postgresql-client"]
+                # dig is provided by dnsutils
+                return ["dnsutils"]
         raise ValueError(f"Unsupported package type: {package_type}")
 
 
-service_registry.register(KnownServiceType.POSTGRES, PostgresService)
+service_registry.register(KnownServiceType.DNS, DNSService)
 

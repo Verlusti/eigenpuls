@@ -1,10 +1,50 @@
-port: 4242
+port: 4343
 host: 0.0.0.0
 interval_seconds: 10
 services:
-  - name: rabbitmq@main
-    type: rabbitmq
-    host: rabbitmq
-    port: 5672
-    user: guest
-    password: guest
+- name: core__cache
+  type: redis
+  host: core__cache
+  port: 6379
+  timeout: 10
+  max_retries: 3
+- name: core__database
+  type: postgres
+  host: core__database
+  port: 5432
+  user: postgres
+  timeout: 10
+  max_retries: 3
+- name: core__tasks-beat
+  type: celery-beat
+  timeout: 10
+  max_retries: 3
+- name: core__tasks-flower
+  type: celery-flower
+  host: core__tasks-flower
+  port: 5555
+  timeout: 10
+  max_retries: 3
+- name: core__tasks-long_cpu
+  type: celery-worker
+  timeout: 10
+  max_retries: 3
+- name: core__tasks-long_io
+  type: celery-worker
+  timeout: 10
+  max_retries: 3
+- name: core__tasks-short_cpu
+  type: celery-worker
+  timeout: 10
+  max_retries: 3
+- name: core__tasks-short_io
+  type: celery-worker
+  timeout: 10
+  max_retries: 3
+- name: core__tasks__broker
+  type: rabbitmq
+  host: core__tasks__broker
+  port: 5672
+  timeout: 10
+  max_retries: 3
+ 

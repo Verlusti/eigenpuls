@@ -14,7 +14,7 @@ class RabbitMQService(Service):
     def __init__(self, name: str, **data):
         super().__init__(name=name, type=KnownServiceType.RABBITMQ, **data)
 
-    def run(self) -> ServiceStatus:
+    async def run(self) -> ServiceStatus:
         # Prefer rabbitmq-diagnostics; fallback to rabbitmqctl
         missing = self.binaries_missing(["rabbitmq-diagnostics"])  # returns list
         if missing:
@@ -37,7 +37,8 @@ class RabbitMQService(Service):
             "rabbitmq-diagnostics -q check_local_alarms"
         )
         cmd = self.replace_placeholders(base)
-        code, out, err = self.run_shell(cmd)
+        code, out, err = await self.run_shell_async(cmd)
+        code, out, err = await self.run_shell_async(cmd)
         if code == 0:
             return ServiceStatus(status=ServiceHealth.OK, details="diagnostics ok")
         return ServiceStatus(status=ServiceHealth.ERROR, details=err or out or f"exit={code}")
