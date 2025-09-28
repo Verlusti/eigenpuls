@@ -29,7 +29,7 @@ class RedisService(Service):
         # redis-cli available; use ping with optional auth
         auth_fragment = ""
         if self.password:
-            auth_fragment = f"-a {self.password} "
+            auth_fragment = f"-a {self.password.get_secret_value()} "
         base = f"redis-cli -h %host% -p %port% {auth_fragment}PING"
         cmd = self.replace_placeholders(base)
         code, out, err = await self.run_shell_async(cmd)
@@ -41,7 +41,7 @@ class RedisService(Service):
     def build_command(self) -> str:
         auth_fragment = ""
         if self.password:
-            auth_fragment = f"-a {self.password} "
+            auth_fragment = f"-a {self.password.get_secret_value()} "
         return self.replace_placeholders(f"redis-cli -h %host% -p %port% {auth_fragment}PING")
 
 

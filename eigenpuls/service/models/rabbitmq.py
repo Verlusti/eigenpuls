@@ -24,28 +24,37 @@ class RabbitMQService(Service):
                     status=ServiceHealth.ERROR,
                     details=f"Missing rabbitmq client binaries. Install packages: {pkgs}",
                 )
-            cmd = "rabbitmqctl status"
+            cookie_prefix = ""
+            try:
+                if self.cookie and self.cookie.get_secret_value():
+                    cookie_prefix = f"RABBITMQ_ERLANG_COOKIE={self.cookie.get_secret_value()} "
+            except Exception:
+                cookie_prefix = ""
+            cmd = f"{cookie_prefix}rabbitmqctl status"
             code, out, err = self.run_shell(cmd)
             if code == 0:
                 return ServiceStatus(status=ServiceHealth.OK, details="rabbitmqctl status ok")
             return ServiceStatus(status=ServiceHealth.ERROR, details=err or out or f"exit={code}")
 
-        # Diagnostics available
-        base = (
-            "rabbitmq-diagnostics -q check_running && "
-            "rabbitmq-diagnostics -q check_port_listener %port% && "
-            "rabbitmq-diagnostics -q check_local_alarms"
-        )
-        cmd = self.replace_placeholders(base)
-        code, out, err = await self.run_shell_async(cmd)
+        # Diagnostics available: reuse build_command to avoid duplication
+        cmd = self.build_command()
         code, out, err = await self.run_shell_async(cmd)
         if code == 0:
             return ServiceStatus(status=ServiceHealth.OK, details="diagnostics ok")
         return ServiceStatus(status=ServiceHealth.ERROR, details=err or out or f"exit={code}")
 
     def build_command(self) -> str:
-        return self.replace_placeholders(
-            "rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_port_listener %port% && rabbitmq-diagnostics -q check_local_alarms"
+        cookie_prefix = ""
+        try:
+            if self.cookie and self.cookie.get_secret_value():
+                cookie_prefix = f"RABBITMQ_ERLANG_COOKIE={self.cookie.get_secret_value()} "
+        except Exception:
+            cookie_prefix = ""
+        port_value = str(self.port or "")
+        return (
+            f"{cookie_prefix}rabbitmq-diagnostics -q check_running && "
+            f"{cookie_prefix}rabbitmq-diagnostics -q check_port_listener {port_value} && "
+            f"{cookie_prefix}rabbitmq-diagnostics -q check_local_alarms"
         )
 
     def get_system_packages(self, package_type: SystemPackageType) -> List[str]:

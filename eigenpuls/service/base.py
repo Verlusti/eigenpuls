@@ -10,7 +10,7 @@ import subprocess
 import asyncio
 import contextlib
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, SecretStr
 
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_TIMEOUT_SECONDS = 10
@@ -60,7 +60,8 @@ class Service(BaseModel, ABC):
     host: Optional[str] = None
     port: Optional[int] = None
     user: Optional[str] = None
-    password: Optional[str] = None
+    password: Optional[SecretStr] = None
+    cookie: Optional[SecretStr] = None
 
     timeout: Optional[int] = DEFAULT_TIMEOUT_SECONDS
     max_retries: Optional[int] = DEFAULT_MAX_RETRIES
@@ -88,7 +89,8 @@ class Service(BaseModel, ABC):
         cmd = cmd.replace("%host%", (self.host or ""))
         cmd = cmd.replace("%port%", str(self.port or ""))
         cmd = cmd.replace("%user%", (self.user or ""))
-        cmd = cmd.replace("%password%", (self.password or ""))
+        cmd = cmd.replace("%password%", (self.password or "").get_secret_value() if self.password else "")
+        cmd = cmd.replace("%cookie%", (self.cookie or "").get_secret_value() if self.cookie else "")
         return cmd
 
 
