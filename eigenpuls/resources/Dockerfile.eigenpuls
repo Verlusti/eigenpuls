@@ -2,8 +2,9 @@
 # build:
 #   context: .
 #   dockerfile: Dockerfile.eigenpuls
-#   args:
+#   env:
 #     EIGENPULS_VERSION: X.Y.Z
+#     EIGENPULS_INTERNAL_PORT: 4242
 #
 
 # Build stage
@@ -22,5 +23,5 @@ RUN pip install --no-cache-dir eigenpuls==${EIGENPULS_VERSION}
 WORKDIR /app
 COPY eigenpuls.yaml /app/eigenpuls.yaml
 ENV EIGENPULS_CONFIG=/app/eigenpuls.yaml
-EXPOSE ${EIGENPULS_INTERNAL_PORT}
+EXPOSE ${EIGENPULS_INTERNAL_PORT:-4242}
 CMD ["python", "-m", "eigenpuls", "serve", "-c", "/app/eigenpuls.yaml"]
