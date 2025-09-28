@@ -178,7 +178,7 @@ async def _refresh_services_once(svc_list: List[Service]) -> None:
         health_cache[svc.name] = (item, now)
 
 
-@app.get("/api/v1/health")
+@app.get("/health")
 async def health(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
     # This is my own health check, not the health check of the services
     with services_lock:
@@ -207,7 +207,7 @@ async def health(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
     return response
 
 
-@app.get("/api/v1/health/{service_name}")
+@app.get("/health/{service_name}")
 async def health_service(service_name: str, refresh: bool = Query(False)) -> HealthItem:
     with services_lock:
         service = services.get(service_name)
