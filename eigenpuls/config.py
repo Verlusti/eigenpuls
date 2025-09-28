@@ -95,13 +95,9 @@ class AppConfig(BaseSettings):
         )
 
 
-    def dockerfile(self, host: Optional[str] = None, port: Optional[int] = None) -> str:
+    def dockerfile(self, port: Optional[int] = None) -> str:
         from importlib.resources import files
         from eigenpuls import __version__
 
         dockerfile = files("eigenpuls.resources").joinpath("Dockerfile.eigenpuls").read_text(encoding="utf-8")
-        dockerfile = dockerfile.replace("${EIGENPULS_VERSION}", __version__)
-        # Replace simple placeholders with configured values
-        dockerfile = dockerfile.replace("%host%", str(host or self.host or ""))
-        dockerfile = dockerfile.replace("%port%", str(port or self.port or ""))
         return dockerfile
