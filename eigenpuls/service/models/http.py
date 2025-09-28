@@ -19,7 +19,7 @@ class HTTPService(Service):
 
     async def run(self) -> ServiceStatus:
         # Use Python stdlib HTTP client only; no external binaries
-        url = self.replace_placeholders("http://%host%:%port%/")
+        url = self.replace_placeholders("http://%host%:%port%/%path%")
         try:
             loop = asyncio.get_running_loop()
             timeout_seconds = self.timeout or 10
@@ -36,7 +36,7 @@ class HTTPService(Service):
             return ServiceStatus(status=ServiceHealth.ERROR, details=str(e))
 
     def build_command(self) -> str:
-        return self.replace_placeholders("GET http://%host%:%port%/")
+        return self.replace_placeholders("GET http://%host%:%port%/%path%")
 
     def get_system_packages(self, package_type: SystemPackageType) -> List[str]:
         # No external packages required for Python stdlib HTTP

@@ -71,6 +71,7 @@ class Service(BaseModel, ABC):
     user: Optional[str] = None
     password: Optional[SecretStr] = None
     cookie: Optional[SecretStr] = None
+    path: Optional[str] = None
 
     timeout: Optional[int] = DEFAULT_TIMEOUT_SECONDS
     max_retries: Optional[int] = DEFAULT_MAX_RETRIES
@@ -106,6 +107,16 @@ class Service(BaseModel, ABC):
             return str(val) if val is not None else ""
         cmd = cmd.replace("%password%", _secret_value(self.password))
         cmd = cmd.replace("%cookie%", _secret_value(self.cookie))
+
+
+        if self.path:
+            path = self.path
+        else:
+            path = ""
+        if path.startswith("/"):
+            path = path[1:]
+            
+        cmd = cmd.replace("%path%", path)
         return cmd
 
 
