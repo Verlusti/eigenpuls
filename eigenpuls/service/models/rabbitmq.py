@@ -33,9 +33,11 @@ class RabbitMQService(Service):
     def build_command(self) -> str:
         cookie_arg = ""
         try:
-            if self.cookie and self.cookie.get_secret_value():
-                _val = self.cookie.get_secret_value()
-                _val = "'" + _val.replace("'", "'\"'\"'") + "'"
+            cookie_value = None
+            if self.cookie:
+                cookie_value = self.cookie.get_secret_value() if hasattr(self.cookie, "get_secret_value") else str(self.cookie)
+            if cookie_value:
+                _val = "'" + cookie_value.replace("'", "'\"'\"'") + "'"
                 cookie_arg = f"--erlang-cookie {_val} "
         except Exception:
             cookie_arg = ""
