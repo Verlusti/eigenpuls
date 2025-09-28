@@ -32,7 +32,7 @@ class RabbitMQService(Service):
                     cookie_arg = f"--erlang-cookie {_val} "
             except Exception:
                 cookie_arg = ""
-            cmd = f"rabbitmqctl {cookie_arg}status"
+            cmd = f"rabbitmqctl {cookie_arg} -n rabbit@{self.host} status"
             code, out, err = self.run_shell(cmd)
             if code == 0:
                 return ServiceStatus(status=ServiceHealth.OK, details="rabbitmqctl status ok")
@@ -54,11 +54,11 @@ class RabbitMQService(Service):
                 cookie_arg = f"--erlang-cookie {_val} "
         except Exception:
             cookie_arg = ""
-        port_value = str(self.port or "")
+
         return (
-            f"rabbitmq-diagnostics {cookie_arg}-q check_running && "
-            f"rabbitmq-diagnostics {cookie_arg}-q check_port_listener {port_value} && "
-            f"rabbitmq-diagnostics {cookie_arg}-q check_local_alarms"
+            f"rabbitmq-diagnostics {cookie_arg} -n rabbit@{self.host} -q check_running && "
+            f"rabbitmq-diagnostics {cookie_arg} -n rabbit@{self.host} -q check_port_listener {self.port} && "
+            f"rabbitmq-diagnostics {cookie_arg} -n rabbit@{self.host} -q check_local_alarms"
         )
 
     def get_system_packages(self, package_type: SystemPackageType) -> List[str]:
