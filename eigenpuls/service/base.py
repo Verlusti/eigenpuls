@@ -51,6 +51,7 @@ class ServiceStatus(BaseModel):
     retries: int = 0
     checked_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_retry_at: Optional[datetime] = None
+    debug_command: Optional[str] = None
 
 
 class Service(BaseModel, ABC):
@@ -69,6 +70,7 @@ class Service(BaseModel, ABC):
     max_retries: Optional[int] = DEFAULT_MAX_RETRIES
 
     _status: ServiceStatus = PrivateAttr(default_factory=lambda: ServiceStatus(status=ServiceHealth.PENDING, details="", retries=0))
+    _last_command: str = PrivateAttr(default="")
 
 
     @abstractmethod
@@ -107,6 +109,8 @@ class Service(BaseModel, ABC):
 
     def run_shell(self, command: str) -> Tuple[int, str, str]:
         try:
+            # Remember last executed command for debugging
+            self._last_command = command
             proc = subprocess.run(
                 command,
                 shell=True,
@@ -121,6 +125,8 @@ class Service(BaseModel, ABC):
 
     async def run_shell_async(self, command: str) -> Tuple[int, str, str]:
         try:
+            # Remember last executed command for debugging
+            self._last_command = command
             proc = await asyncio.create_subprocess_shell(
                 command,
                 stdout=asyncio.subprocess.PIPE,
@@ -144,6 +150,13 @@ class Service(BaseModel, ABC):
             result = await self.run()
             # propagate retry counters
             result.retries = attempt
+            # Optionally attach executed command for debugging
+            try:
+                dbg = os.environ.get("EIGENPULS_DEBUG", "").strip().lower()
+                if dbg in ("1", "true", "yes", "on"):  # enabled
+                    result.debug_command = self._last_command or result.debug_command
+            except Exception:
+                pass
             if result.status == ServiceHealth.OK:
                 return result
             last_status = result
