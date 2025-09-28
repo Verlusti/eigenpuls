@@ -63,14 +63,16 @@ def _build_app() -> FastAPI:
     return app
 
 
-def start_health_server(host: str = "0.0.0.0", port: int = 8099, require_worker_ping: bool = False) -> bool:
+def start_health_server(host: Optional[str] = None, port: Optional[int] = None, require_worker_ping: bool = False) -> bool:
     global _app, _server, _thread, _started, _require_worker_ping
     with _lock:
         if _started:
             return False
         _require_worker_ping = bool(require_worker_ping)
         _app = _build_app()
-        config = uvicorn.Config(app=_app, host=host, port=int(port), log_level="warning", lifespan="off")
+        bind_host = host or "0.0.0.0"
+        bind_port = int(port) if port is not None else 8099
+        config = uvicorn.Config(app=_app, host=bind_host, port=bind_port, log_level="warning", lifespan="off")
         server = uvicorn.Server(config)
         _server = server
 
