@@ -54,6 +54,8 @@ async def app_startup():
         service_instance.user = service.user
         service_instance.password = service.password
         service_instance.cookie = getattr(service, "cookie", None)
+        service_instance.path = getattr(service, "path", None)
+
         # Derive a reasonable default timeout if not provided in config
         if not service_instance.timeout:
             # half of interval, capped by default timeout constant
