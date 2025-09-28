@@ -10,7 +10,7 @@ import subprocess
 import asyncio
 import contextlib
 
-from pydantic import BaseModel, Field, PrivateAttr, SecretStr
+from pydantic import BaseModel, Field, PrivateAttr, SecretStr, ConfigDict
 
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_TIMEOUT_SECONDS = 10
@@ -54,6 +54,8 @@ class ServiceStatus(BaseModel):
 
 
 class Service(BaseModel, ABC):
+    # Ensure attribute assignment is validated and coerced to declared types (e.g., SecretStr)
+    model_config = ConfigDict(validate_assignment=True)
     name: str
     type: KnownServiceType
 
@@ -89,8 +91,13 @@ class Service(BaseModel, ABC):
         cmd = cmd.replace("%host%", (self.host or ""))
         cmd = cmd.replace("%port%", str(self.port or ""))
         cmd = cmd.replace("%user%", (self.user or ""))
-        cmd = cmd.replace("%password%", (self.password or "").get_secret_value() if self.password else "")
-        cmd = cmd.replace("%cookie%", (self.cookie or "").get_secret_value() if self.cookie else "")
+        # Be defensive in case values were set bypassing validation
+        def _secret_value(val):
+            if isinstance(val, SecretStr):
+                return val.get_secret_value()
+            return str(val) if val is not None else ""
+        cmd = cmd.replace("%password%", _secret_value(self.password))
+        cmd = cmd.replace("%cookie%", _secret_value(self.cookie))
         return cmd
 
 
