@@ -19,7 +19,10 @@ RUN EIGENPULS_CONFIG=/app/eigenpuls.yaml python -m eigenpuls packages --type apt
 FROM python:3.12-slim
 ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=build /app/.apt.txt /app/.apt.txt
-RUN apt-get update && xargs -r apt-get install -y --no-install-recommends < /app/.apt.txt && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && xargs -r apt-get install -y --no-install-recommends < /app/.apt.txt \
+ && rm -rf /var/lib/apt/lists/*
 ARG EIGENPULS_VERSION
 RUN pip install --no-cache-dir eigenpuls==${EIGENPULS_VERSION}
 WORKDIR /app

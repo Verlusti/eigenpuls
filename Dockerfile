@@ -36,7 +36,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Install runtime deps and dynamically discovered apt packages
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
-    apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+    apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
