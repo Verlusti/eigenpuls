@@ -29,6 +29,7 @@ dependencies = [
   "pydantic-settings",
   "PyYAML",
   "fire",
+  "celery",
 ]
 
 [project.scripts]
