@@ -9,14 +9,13 @@ from typing import Dict, List, Tuple
 from pydantic import BaseModel
 import asyncio
 from contextlib import asynccontextmanager
-from threading import Lock
 
 import logging
 logger = logging.getLogger("uvicorn.error")
 
 
 services: Dict[str, Service] = {}
-services_lock = Lock()
+services_lock = asyncio.Lock()
 health_cache: Dict[str, Tuple[HealthItem, float]] = {}
 HEALTH_TTL_SUCCESS_SECONDS = 8
 HEALTH_TTL_ERROR_SECONDS = 2
@@ -39,7 +38,7 @@ async def app_startup():
         HEALTH_TTL_SUCCESS_SECONDS = max(1, int(config.interval_seconds))
     if not HEALTH_TTL_ERROR_SECONDS or HEALTH_TTL_ERROR_SECONDS == 2:
         HEALTH_TTL_ERROR_SECONDS = max(1, int(config.interval_seconds // 3))
-    with services_lock:
+    async with services_lock:
         services.clear()
 
     for service in config.services:
@@ -62,7 +61,7 @@ async def app_startup():
             derived_timeout = min(DEFAULT_TIMEOUT_SECONDS, max(1, int(config.interval_seconds // 2)))
             service_instance.timeout = derived_timeout
 
-        with services_lock:
+        async with services_lock:
             services[service_instance.name] = service_instance
 
         logger.info(f"  * Found service: {service_instance.name} [{service_instance.type.value}]")
@@ -77,7 +76,7 @@ async def app_startup():
 
 async def app_shutdown():
     logger.info("eigenpuls shutting down")
-    with services_lock:
+    async with services_lock:
         services.clear()
     # stop background refresher
     global _refresh_task
@@ -114,7 +113,7 @@ async def _background_refresh_loop() -> None:
     try:
         while not _stop_refresh.is_set():
             try:
-                with services_lock:
+                async with services_lock:
                     svc_list = list(services.values())
                 if not svc_list:
                     try:
@@ -194,7 +193,7 @@ async def health():
 @app.get("/health/service")
 async def health_service(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
     # This is my own health check, not the health check of the services
-    with services_lock:
+    async with services_lock:
         svc_list = list(services.values())
     # Only return cached data for speed. Optionally schedule refresh in background.
     now = asyncio.get_event_loop().time()
@@ -222,7 +221,7 @@ async def health_service(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
 
 @app.get("/health/service/{service_name}")
 async def health_service(service_name: str, refresh: bool = Query(False)) -> HealthItem:
-    with services_lock:
+    async with services_lock:
         service = services.get(service_name)
         if not service:
             raise HTTPException(status_code=404, detail="Service not found")
