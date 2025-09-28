@@ -185,7 +185,12 @@ async def _refresh_services_once(svc_list: List[Service]) -> None:
 
 
 @app.get("/health")
-async def health(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
+async def health():
+    return {"ok": True}
+
+
+@app.get("/health/service")
+async def health_service(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
     # This is my own health check, not the health check of the services
     with services_lock:
         svc_list = list(services.values())
@@ -213,7 +218,7 @@ async def health(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
     return response
 
 
-@app.get("/health/{service_name}")
+@app.get("/health/service/{service_name}")
 async def health_service(service_name: str, refresh: bool = Query(False)) -> HealthItem:
     with services_lock:
         service = services.get(service_name)
