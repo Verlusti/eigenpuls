@@ -21,6 +21,7 @@ class AppConfig(BaseSettings):
     port: int = DEFAULT_PORT
     host: str = DEFAULT_HOST
     interval_seconds: int = DEFAULT_INTERVAL_SECONDS
+    debug: bool = False
     services: List[Service] = Field(default_factory=list)
 
     model_config = SettingsConfigDict(

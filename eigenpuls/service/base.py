@@ -11,6 +11,12 @@ import asyncio
 import contextlib
 
 from pydantic import BaseModel, Field, PrivateAttr, SecretStr, ConfigDict
+DEBUG_ENABLED: bool = False
+
+def set_debug_enabled(value: bool) -> None:
+    global DEBUG_ENABLED
+    DEBUG_ENABLED = bool(value)
+
 
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_TIMEOUT_SECONDS = 10
@@ -150,13 +156,9 @@ class Service(BaseModel, ABC):
             result = await self.run()
             # propagate retry counters
             result.retries = attempt
-            # Optionally attach executed command for debugging
-            try:
-                dbg = os.environ.get("EIGENPULS_DEBUG", "").strip().lower()
-                if dbg in ("1", "true", "yes", "on"):  # enabled
-                    result.debug_command = self._last_command or result.debug_command
-            except Exception:
-                pass
+            # Optionally attach executed command for debugging (global flag)
+            if DEBUG_ENABLED:
+                result.debug_command = self._last_command or result.debug_command
             if result.status == ServiceHealth.OK:
                 return result
             last_status = result

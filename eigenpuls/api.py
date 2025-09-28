@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from eigenpuls.config import AppConfig
 from eigenpuls.service.registry import service_registry
-from eigenpuls.service.base import Service, ServiceStatus, ServiceHealth, DEFAULT_TIMEOUT_SECONDS
+from eigenpuls.service.base import Service, ServiceStatus, ServiceHealth, DEFAULT_TIMEOUT_SECONDS, set_debug_enabled
 
 from fastapi import FastAPI, HTTPException, Query
 from typing import Dict, List, Tuple
@@ -28,6 +28,11 @@ async def app_startup():
     logger.info(f"Searching for services ...")
 
     config = AppConfig()
+    # Set global debug flag
+    try:
+        set_debug_enabled(bool(getattr(config, "debug", False)))
+    except Exception:
+        set_debug_enabled(False)
     # derive TTLs from config interval if not explicitly configured elsewhere
     global HEALTH_TTL_SUCCESS_SECONDS, HEALTH_TTL_ERROR_SECONDS
     if not HEALTH_TTL_SUCCESS_SECONDS or HEALTH_TTL_SUCCESS_SECONDS == 8:
