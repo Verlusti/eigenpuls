@@ -22,5 +22,5 @@ RUN pip install --no-cache-dir eigenpuls==${EIGENPULS_VERSION}
 WORKDIR /app
 COPY eigenpuls.yaml /app/eigenpuls.yaml
 ENV EIGENPULS_CONFIG=/app/eigenpuls.yaml
-EXPOSE 4242
+EXPOSE %port%
 CMD ["python", "-m", "eigenpuls", "serve", "-c", "/app/eigenpuls.yaml"]
