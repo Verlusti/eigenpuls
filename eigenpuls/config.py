@@ -95,7 +95,7 @@ class AppConfig(BaseSettings):
         )
 
 
-    def dockerfile(self, port: Optional[int] = None) -> str:
+    def dockerfile(self) -> str:
         from importlib.resources import files
         from eigenpuls import __version__
 

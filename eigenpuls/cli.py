@@ -97,11 +97,11 @@ class CLI:
         print(sep.join(sorted(package_set)))
 
 
-    def dockerfile(self, port: Optional[int] = None) -> str:
+    def dockerfile(self) -> str:
         from .config import AppConfig
         
         cfg = AppConfig()    
-        return cfg.dockerfile(port=port)
+        return cfg.dockerfile()
 
 
     def list_services(self) -> None:
