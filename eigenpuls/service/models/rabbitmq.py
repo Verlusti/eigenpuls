@@ -24,13 +24,15 @@ class RabbitMQService(Service):
                     status=ServiceHealth.ERROR,
                     details=f"Missing rabbitmq client binaries. Install packages: {pkgs}",
                 )
-            cookie_prefix = ""
+            cookie_arg = ""
             try:
                 if self.cookie and self.cookie.get_secret_value():
-                    cookie_prefix = f"RABBITMQ_ERLANG_COOKIE={self.cookie.get_secret_value()} "
+                    _val = self.cookie.get_secret_value()
+                    _val = "'" + _val.replace("'", "'\"'\"'") + "'"
+                    cookie_arg = f"--erlang-cookie {_val} "
             except Exception:
-                cookie_prefix = ""
-            cmd = f"{cookie_prefix}rabbitmqctl status"
+                cookie_arg = ""
+            cmd = f"rabbitmqctl {cookie_arg}status"
             code, out, err = self.run_shell(cmd)
             if code == 0:
                 return ServiceStatus(status=ServiceHealth.OK, details="rabbitmqctl status ok")
@@ -44,17 +46,19 @@ class RabbitMQService(Service):
         return ServiceStatus(status=ServiceHealth.ERROR, details=err or out or f"exit={code}")
 
     def build_command(self) -> str:
-        cookie_prefix = ""
+        cookie_arg = ""
         try:
             if self.cookie and self.cookie.get_secret_value():
-                cookie_prefix = f"RABBITMQ_ERLANG_COOKIE={self.cookie.get_secret_value()} "
+                _val = self.cookie.get_secret_value()
+                _val = "'" + _val.replace("'", "'\"'\"'") + "'"
+                cookie_arg = f"--erlang-cookie {_val} "
         except Exception:
-            cookie_prefix = ""
+            cookie_arg = ""
         port_value = str(self.port or "")
         return (
-            f"{cookie_prefix}rabbitmq-diagnostics -q check_running && "
-            f"{cookie_prefix}rabbitmq-diagnostics -q check_port_listener {port_value} && "
-            f"{cookie_prefix}rabbitmq-diagnostics -q check_local_alarms"
+            f"rabbitmq-diagnostics {cookie_arg}-q check_running && "
+            f"rabbitmq-diagnostics {cookie_arg}-q check_port_listener {port_value} && "
+            f"rabbitmq-diagnostics {cookie_arg}-q check_local_alarms"
         )
 
     def get_system_packages(self, package_type: SystemPackageType) -> List[str]:
