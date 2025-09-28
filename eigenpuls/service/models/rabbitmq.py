@@ -18,27 +18,12 @@ class RabbitMQService(Service):
         # Prefer rabbitmq-diagnostics; fallback to rabbitmqctl
         missing = self.binaries_missing(["rabbitmq-diagnostics"])  # returns list
         if missing:
-            if self.binaries_missing(["rabbitmqctl"]):
-                pkgs = ", ".join(self.get_system_packages(SystemPackageType.detect_by_os()))
-                return ServiceStatus(
-                    status=ServiceHealth.ERROR,
-                    details=f"Missing rabbitmq client binaries. Install packages: {pkgs}",
-                )
-            cookie_arg = ""
-            try:
-                if self.cookie and self.cookie.get_secret_value():
-                    _val = self.cookie.get_secret_value()
-                    _val = "'" + _val.replace("'", "'\"'\"'") + "'"
-                    cookie_arg = f"--erlang-cookie {_val} "
-            except Exception:
-                cookie_arg = ""
-            cmd = f"rabbitmqctl {cookie_arg} -n rabbit@{self.host} status"
-            code, out, err = self.run_shell(cmd)
-            if code == 0:
-                return ServiceStatus(status=ServiceHealth.OK, details="rabbitmqctl status ok")
-            return ServiceStatus(status=ServiceHealth.ERROR, details=err or out or f"exit={code}")
+            pkgs = ", ".join(self.get_system_packages(SystemPackageType.detect_by_os()))
+            return ServiceStatus(
+                status=ServiceHealth.ERROR,
+                details=f"Missing rabbitmq client binaries. Install packages: {pkgs}",
+            )
 
-        # Diagnostics available: reuse build_command to avoid duplication
         cmd = self.build_command()
         code, out, err = await self.run_shell_async(cmd)
         if code == 0:
