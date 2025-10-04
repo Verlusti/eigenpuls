@@ -4,13 +4,10 @@ services:
       context: .
     image: eigenpuls:dev
     ports:
-      - "4343:4343"
+      - "4242:4242"
     volumes:
       - ./:/app
-      - ./eigenpuls.yaml:/app/eigenpuls.yaml
-
-
-
-
+    environment:
+      - EIGENPULS_APIKEY=1234567890
 
 

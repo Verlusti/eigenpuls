@@ -27,9 +27,9 @@ dependencies = [
   "uvicorn",
   "pydantic",
   "pydantic-settings",
-  "PyYAML",
   "fire",
-  "celery",
+  "ultradict",
+  "atomics"
 ]
 
 [project.scripts]
