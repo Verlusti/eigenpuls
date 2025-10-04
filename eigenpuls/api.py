@@ -19,7 +19,10 @@ services_lock = asyncio.Lock()
 health_cache: Dict[str, Tuple[HealthItem, float]] = {}
 HEALTH_TTL_SUCCESS_SECONDS = 8
 HEALTH_TTL_ERROR_SECONDS = 2
-_refresh_task: asyncio.Task | None = None
+# Per-service orchestration
+service_tasks: Dict[str, asyncio.Task] = {}
+service_triggers: Dict[str, asyncio.Event] = {}
+service_run_locks: Dict[str, asyncio.Lock] = {}
 _stop_refresh = asyncio.Event()
 
 async def app_startup():
@@ -66,11 +69,17 @@ async def app_startup():
 
         logger.info(f"  * Found service: {service_instance.name} [{service_instance.type.value}]")
 
-    # start background refresher
-    global _refresh_task
+    # start per-service workers
     _stop_refresh.clear()
-    logger.info("health refresher: starting background task")
-    _refresh_task = asyncio.create_task(_background_refresh_loop())
+    async with services_lock:
+        for svc in services.values():
+            # initialize trigger and lock
+            service_triggers[svc.name] = asyncio.Event()
+            service_run_locks[svc.name] = asyncio.Lock()
+            # create worker task
+            task = asyncio.create_task(_service_worker(svc))
+            service_tasks[svc.name] = task
+    logger.info("health workers: started per-service background tasks")
     return
 
 
@@ -78,16 +87,25 @@ async def app_shutdown():
     logger.info("eigenpuls shutting down")
     async with services_lock:
         services.clear()
-    # stop background refresher
-    global _refresh_task
-    if _refresh_task is not None:
+    # stop per-service workers
+    if service_tasks:
         _stop_refresh.set()
+        tasks = list(service_tasks.values())
         try:
-            await asyncio.wait_for(_refresh_task, timeout=2)
+            await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=2)
         except Exception:
-            pass
-        _refresh_task = None
-    logger.info("health refresher: stopped background task")
+            # cancel any stragglers
+            for t in tasks:
+                if not t.done():
+                    t.cancel()
+            try:
+                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=1)
+            except Exception:
+                pass
+        service_tasks.clear()
+        service_triggers.clear()
+        service_run_locks.clear()
+    logger.info("health workers: stopped per-service background tasks")
     return
 
 
@@ -109,61 +127,53 @@ class HealthItem(BaseModel):
     status: ServiceStatus
 
 
-async def _background_refresh_loop() -> None:
+async def _service_worker(svc: Service) -> None:
+    name = svc.name
     try:
+        loop = asyncio.get_running_loop()
+        trigger = service_triggers.get(name)
+        lock = service_run_locks.get(name)
+        if trigger is None or lock is None:
+            return
         while not _stop_refresh.is_set():
             try:
-                async with services_lock:
-                    svc_list = list(services.values())
-                if not svc_list:
-                    try:
-                        await asyncio.wait_for(_stop_refresh.wait(), timeout=1)
-                    except asyncio.TimeoutError:
-                        pass
-                    continue
-                # run all checks concurrently
-                loop = asyncio.get_running_loop()
-                start_time = loop.time()
-                now = start_time
-                results = await asyncio.gather(*(svc.run_with_retries() for svc in svc_list), return_exceptions=True)
-                for svc, res in zip(svc_list, results):
-                    if isinstance(res, Exception):
-                        item = HealthItem(name=svc.name, type=svc.type.value, status=ServiceStatus(status=ServiceHealth.ERROR, details=str(res)))
-                    else:
-                        item = HealthItem(name=svc.name, type=svc.type.value, status=res)
-                    health_cache[svc.name] = (item, now)
-                # summarize
-                ok_count = 0
-                err_count = 0
-                failed_details = []
-                for svc in svc_list:
-                    item, _ts = health_cache.get(svc.name, (None, 0.0))
-                    if item is None:
-                        continue
-                    if item.status.status == ServiceHealth.OK:
-                        ok_count += 1
-                    else:
-                        err_count += 1
-                        detail = item.status.details if item.status and item.status.details else ""
-                        detail = " ".join(detail.split())
-                        if len(detail) > 120:
-                            detail = detail[:117] + "..."
-                        failed_details.append(f"{svc.name}({detail})")
-                duration_ms = int((loop.time() - start_time) * 1000)
-                if failed_details:
-                    logger.info(f"health refresh: total={len(svc_list)} ok={ok_count} err={err_count} dur_ms={duration_ms} failed={'; '.join(failed_details)}")
+                # determine remaining time until next refresh based on TTL
+                cached = health_cache.get(name)
+                if cached:
+                    item, ts = cached
+                    ttl = HEALTH_TTL_SUCCESS_SECONDS if item.status.status == ServiceHealth.OK else HEALTH_TTL_ERROR_SECONDS
+                    remaining = max(0.0, ttl - (loop.time() - ts))
                 else:
-                    logger.info(f"health refresh: total={len(svc_list)} ok={ok_count} err={err_count} dur_ms={duration_ms}")
-                # sleep proportionally to TTL to keep cache warm
-                try:
-                    await asyncio.wait_for(_stop_refresh.wait(), timeout=min(HEALTH_TTL_SUCCESS_SECONDS, 5))
-                except asyncio.TimeoutError:
-                    pass
+                    remaining = 0.0
+
+                # wait until triggered or TTL expires or stop
+                if remaining > 0:
+                    wait_tasks = [asyncio.create_task(_stop_refresh.wait()), asyncio.create_task(trigger.wait())]
+                    done, pending = await asyncio.wait(wait_tasks, timeout=remaining, return_when=asyncio.FIRST_COMPLETED)
+                    for p in pending:
+                        p.cancel()
+                    if _stop_refresh.is_set():
+                        break
+                # clear trigger (if it was set)
+                trigger.clear()
+
+                # single-flight per service
+                if lock.locked():
+                    continue
+                async with lock:
+                    start = loop.time()
+                    try:
+                        res = await svc.run_with_retries()
+                        item = HealthItem(name=name, type=svc.type.value, status=res)
+                    except Exception as e:
+                        item = HealthItem(name=name, type=svc.type.value, status=ServiceStatus(status=ServiceHealth.ERROR, details=str(e)))
+                    health_cache[name] = (item, loop.time())
+                    duration_ms = int((loop.time() - start) * 1000)
+                    logger.debug(f"service refresh: {name} dur_ms={duration_ms} status={item.status.status.value}")
             except asyncio.CancelledError:
-                raise
+                break
             except Exception as e:
-                logger.exception("health refresher: background cycle failed: %s", e)
-                # brief pause to avoid hot loop on repeated errors
+                logger.exception("service worker '%s' failed: %s", name, e)
                 try:
                     await asyncio.wait_for(_stop_refresh.wait(), timeout=1)
                 except asyncio.TimeoutError:
@@ -172,17 +182,13 @@ async def _background_refresh_loop() -> None:
         return
 
 
-async def _refresh_services_once(svc_list: List[Service]) -> None:
+async def _trigger_services_refresh(svc_list: List[Service]) -> None:
     if not svc_list:
         return
-    now = asyncio.get_event_loop().time()
-    results = await asyncio.gather(*(svc.run_with_retries() for svc in svc_list), return_exceptions=True)
-    for svc, res in zip(svc_list, results):
-        if isinstance(res, Exception):
-            item = HealthItem(name=svc.name, type=svc.type.value, status=ServiceStatus(status=ServiceHealth.ERROR, details=str(res)))
-        else:
-            item = HealthItem(name=svc.name, type=svc.type.value, status=res)
-        health_cache[svc.name] = (item, now)
+    for svc in svc_list:
+        trig = service_triggers.get(svc.name)
+        if trig:
+            trig.set()
 
 
 @app.get("/health")
@@ -215,7 +221,7 @@ async def health_service(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
                 to_refresh.append(svc)
 
     if refresh and to_refresh:
-        asyncio.create_task(_refresh_services_once(to_refresh))
+        asyncio.create_task(_trigger_services_refresh(to_refresh))
     return response
 
 
@@ -232,10 +238,10 @@ async def health_service(service_name: str, refresh: bool = Query(False)) -> Hea
             if refresh:
                 ttl = HEALTH_TTL_SUCCESS_SECONDS if item.status.status == ServiceHealth.OK else HEALTH_TTL_ERROR_SECONDS
                 if now - ts > ttl:
-                    asyncio.create_task(_refresh_services_once([service]))
+                    asyncio.create_task(_trigger_services_refresh([service]))
             return item
         # No cache yet
         pending = HealthItem(name=service.name, type=service.type.value, status=ServiceStatus(status=ServiceHealth.PENDING, details="no cached result"))
         if refresh:
-            asyncio.create_task(_refresh_services_once([service]))
+            asyncio.create_task(_trigger_services_refresh([service]))
         return pending
