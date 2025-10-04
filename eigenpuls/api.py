@@ -169,8 +169,12 @@ async def _service_worker(svc: Service) -> None:
                 # clear trigger (if it was set)
                 trigger.clear()
 
-                # single-flight per service
+                # single-flight per service; avoid busy spin if a run is in progress
                 if lock.locked():
+                    try:
+                        await asyncio.wait_for(_stop_refresh.wait(), timeout=0.1)
+                    except asyncio.TimeoutError:
+                        pass
                     continue
                 async with lock:
                     start = loop.time()
