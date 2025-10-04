@@ -25,6 +25,16 @@ service_triggers: Dict[str, asyncio.Event] = {}
 service_run_locks: Dict[str, asyncio.Lock] = {}
 _stop_refresh = asyncio.Event()
 
+
+def _ttl_ok_seconds(svc: Service) -> int:
+    base = int(svc.interval) if svc.interval else HEALTH_TTL_SUCCESS_SECONDS
+    return max(1, base)
+
+
+def _ttl_error_seconds(svc: Service) -> int:
+    base = int(svc.interval) if svc.interval else HEALTH_TTL_SUCCESS_SECONDS
+    return max(1, int(base // 3) or 1)
+
 async def app_startup():
     logger.info("eigenpuls starting up")
     logger.info(f"Searching for services ...")
@@ -58,10 +68,12 @@ async def app_startup():
         service_instance.cookie = getattr(service, "cookie", None)
         service_instance.path = getattr(service, "path", None)
 
-        # Derive a reasonable default timeout if not provided in config
+        # Ensure interval and timeout defaults per service
+        if not service_instance.interval:
+            service_instance.interval = max(1, int(config.interval_seconds))
         if not service_instance.timeout:
-            # half of interval, capped by default timeout constant
-            derived_timeout = min(DEFAULT_TIMEOUT_SECONDS, max(1, int(config.interval_seconds // 2)))
+            # half of service interval, capped by default timeout constant
+            derived_timeout = min(DEFAULT_TIMEOUT_SECONDS, max(1, int((service_instance.interval or 1) // 2)))
             service_instance.timeout = derived_timeout
 
         async with services_lock:
@@ -141,7 +153,7 @@ async def _service_worker(svc: Service) -> None:
                 cached = health_cache.get(name)
                 if cached:
                     item, ts = cached
-                    ttl = HEALTH_TTL_SUCCESS_SECONDS if item.status.status == ServiceHealth.OK else HEALTH_TTL_ERROR_SECONDS
+                    ttl = _ttl_ok_seconds(svc) if item.status.status == ServiceHealth.OK else _ttl_error_seconds(svc)
                     remaining = max(0.0, ttl - (loop.time() - ts))
                 else:
                     remaining = 0.0
@@ -211,7 +223,7 @@ async def health_service(refresh: bool = Query(False)) -> Dict[str, HealthItem]:
             item, ts = cached
             response[svc.name] = item
             if refresh:
-                ttl = HEALTH_TTL_SUCCESS_SECONDS if item.status.status == ServiceHealth.OK else HEALTH_TTL_ERROR_SECONDS
+                ttl = _ttl_ok_seconds(svc) if item.status.status == ServiceHealth.OK else _ttl_error_seconds(svc)
                 if now - ts > ttl:
                     to_refresh.append(svc)
         else:
@@ -236,7 +248,7 @@ async def health_service(service_name: str, refresh: bool = Query(False)) -> Hea
         if cached:
             item, ts = cached
             if refresh:
-                ttl = HEALTH_TTL_SUCCESS_SECONDS if item.status.status == ServiceHealth.OK else HEALTH_TTL_ERROR_SECONDS
+                ttl = _ttl_ok_seconds(service) if item.status.status == ServiceHealth.OK else _ttl_error_seconds(service)
                 if now - ts > ttl:
                     asyncio.create_task(_trigger_services_refresh([service]))
             return item

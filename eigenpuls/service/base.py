@@ -20,6 +20,7 @@ def set_debug_enabled(value: bool) -> None:
 
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_TIMEOUT_SECONDS = 10
+DEFAULT_INTERVAL_SECONDS = 10
 
 
 class SystemPackageType(str, Enum):
@@ -73,6 +74,7 @@ class Service(BaseModel, ABC):
     cookie: Optional[SecretStr] = None
     path: Optional[str] = None
 
+    interval: Optional[int] = DEFAULT_INTERVAL_SECONDS
     timeout: Optional[int] = DEFAULT_TIMEOUT_SECONDS
     max_retries: Optional[int] = DEFAULT_MAX_RETRIES
 
