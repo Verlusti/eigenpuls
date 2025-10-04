@@ -45,7 +45,6 @@ class RabbitMQService(Service):
         return (
             f"rabbitmq-diagnostics {cookie_arg} -n rabbit@{self.host} -q check_running && "
             f"rabbitmq-diagnostics {cookie_arg} -n rabbit@{self.host} -q check_port_listener {self.port} && "
-            f"rabbitmq-diagnostics {cookie_arg} -n rabbit@{self.host} -q check_local_alarms"
         )
 
     def get_system_packages(self, package_type: SystemPackageType) -> List[str]:
