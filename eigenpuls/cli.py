@@ -155,10 +155,10 @@ class CLI:
         
         if not url:
             raise ValueError("url is required")
-            
+
         base_url = url
         from importlib.resources import files as _files
-        script_path = _files("eigenpuls.eigenpuls.resources").joinpath(self.client_script_name())
+        script_path = _files("eigenpuls.resources").joinpath(self.client_script_name())
         envs = [
             "ACTION=probe",
             f"PROBE={probe}",
