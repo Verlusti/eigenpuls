@@ -50,10 +50,35 @@ class CLI:
         print(resp)
 
     
-    def current_apikey(self) -> None:
+    def current_apikey(self, show: bool = False) -> None:
         from .api import _get_expected_apikey
 
-        print(f"Current API key: {_get_expected_apikey()}")
+        key = _get_expected_apikey() or ""
+        if show:
+            print(f"Current API key: {key}")
+            return
+        if not key:
+            print("Current API key: (not set)")
+            return
+        masked = key if len(key) <= 6 else f"{key[:3]}***{key[-2:]}"
+        print(f"Current API key: {masked}")
+
+
+    async def service_config(self, service: str, config: str) -> None:
+        from .api import health_service_config
+        resp = await health_service_config(service, config)
+        print(resp)
+
+
+    async def service_worker(self, service: str, worker: str, health: str) -> None:
+        from .api import health_service_worker
+        resp = await health_service_worker(service, worker, health)
+        print(resp)
+
+
+    def client_script(self) -> str:
+        from importlib.resources import files
+        return files("eigenpuls.eigenpuls.resources").joinpath("eigenpuls-client.sh").read_text(encoding="utf-8")
 
 
 def main():

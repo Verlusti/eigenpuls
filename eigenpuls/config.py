@@ -1,5 +1,6 @@
 from uuid import uuid4
 from typing import Optional
+from pydantic import SecretStr
 import threading
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,7 +17,7 @@ class AppConfig(BaseSettings):
     port: int = DEFAULT_PORT
     host: str = DEFAULT_HOST
     debug: bool = DEFAULT_DEBUG
-    apikey: str = DEFAULT_APIKEY
+    apikey: SecretStr = SecretStr(DEFAULT_APIKEY)
     shared_name: Optional[str] = DEFAULT_SHARED_NAME
 
     model_config = SettingsConfigDict(

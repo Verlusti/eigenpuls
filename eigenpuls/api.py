@@ -72,7 +72,14 @@ def _get_uptime_seconds() -> float | None:
 def _get_expected_apikey() -> str | None:
     try:
         cfg = get_app_config()
-        return getattr(cfg, "apikey", None)
+        key = getattr(cfg, "apikey", None)
+        if key is None:
+            return None
+        try:
+            # SecretStr compatible
+            return key.get_secret_value()  # type: ignore[attr-defined]
+        except Exception:
+            return str(key)
     except Exception:
         return None
 
