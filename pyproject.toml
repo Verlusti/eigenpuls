@@ -28,8 +28,7 @@ dependencies = [
   "pydantic",
   "pydantic-settings",
   "fire",
-  "ultradict",
-  "atomics"
+  
 ]
 
 [project.scripts]
@@ -45,6 +44,12 @@ eigenpuls = ["resources/*"]
 version_scheme = "no-guess-dev"
 local_scheme = "no-local-version"
 fallback_version = "0.0.0"
+
+[project.optional-dependencies]
+server = [
+  "ultradict",
+  "atomics",
+]
 
 [tool.ruff]
 line-length = 100
