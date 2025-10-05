@@ -105,23 +105,23 @@ class EigenpulsClient:
     # --------------
     # Async methods
     # --------------
-    async def ahealth(self) -> Dict[str, Any]:
+    async def health_async(self) -> Dict[str, Any]:
         return await self._arequest("GET", "/health")
 
-    async def alist_services(self) -> ServiceListResponse:
+    async def list_services_async(self) -> ServiceListResponse:
         data = await self._arequest("GET", "/health/service")
         return self._parse_service_list_response(data)
 
-    async def aget_service(self, service_name: str) -> ServiceResponse:
+    async def get_service_async(self, service_name: str) -> ServiceResponse:
         data = await self._arequest("GET", f"/health/service/{service_name}")
         return self._parse_service_response(data)
 
-    async def aupdate_config(self, service_name: str, config: ServiceConfig) -> ServiceResponse:
+    async def update_config_async(self, service_name: str, config: ServiceConfig) -> ServiceResponse:
         payload = config.model_dump()
         data = await self._arequest("POST", f"/health/service/{service_name}/config", body=payload)
         return self._parse_service_response(data)
 
-    async def aupdate_worker(self, service_name: str, worker_name: str, health: ServiceStatusHealth) -> ServiceWorkerResponse:
+    async def update_worker_async(self, service_name: str, worker_name: str, health: ServiceStatusHealth) -> ServiceWorkerResponse:
         payload = health.model_dump()
         data = await self._arequest("POST", f"/health/service/{service_name}/worker/{worker_name}", body=payload)
         return self._parse_service_worker_response(data)
