@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from eigenpulsd.config import AppConfig, get_app_config
+import eigenpuls
+from eigenpulsd.config import get_app_config
 from eigenpuls.service import Service, ServiceResponse, ServiceListResponse, ServiceWorkerResponse, ServiceStatus, ServiceStatusHealth, ServiceConfig, ServiceMode, ServiceStatusList
 from datetime import datetime, timezone
 import time
@@ -51,7 +52,12 @@ async def lifespan(app: FastAPI):
         await app_shutdown()
 
 
-app = FastAPI(title="eigenpuls", lifespan=lifespan)
+app = FastAPI(title="eigenpuls", lifespan=lifespan, version=eigenpuls.__version__)
+app.openapi_extra = {
+    "info": {
+        "version": eigenpuls.__version__
+    }
+}
 
 
 def _store_get_server_start() -> float | None:
@@ -137,13 +143,6 @@ def _store_get_service(name: str) -> Service | None:
 
 def _compute_service_response(svc: Service) -> Dict:
     return ServiceResponse.from_service(svc).model_dump()
-
-
-def _store_set_response(name: str, resp_doc: Dict) -> None:
-    with with_store_lock():
-        docs = dict(app_data.get("responses", {}) or {})
-        docs[name] = resp_doc
-        app_data["responses"] = docs
 
 
 def _store_get_responses() -> Dict[str, Dict]:
