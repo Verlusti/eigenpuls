@@ -126,7 +126,7 @@ class CLI:
 
         from importlib.resources import files
 
-        return files("eigenpuls.eigenpuls.resources").joinpath(self.client_script_name).read_text(encoding="utf-8")
+        return files("eigenpuls.resources").joinpath(self.client_script_name).read_text(encoding="utf-8")
 
 
 def main():
