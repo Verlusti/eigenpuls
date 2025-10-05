@@ -144,8 +144,8 @@ class CLI:
 
         - probe: postgres|redis|rabbitmq|http|tcp
         - service/worker: identifiers reported to eigenpuls
+        - url: eigenpuls base URL
         - host/port/path: probe target (path only for http)
-        - url: eigenpuls base URL (defaults to http://{host}:{port} from config)
         - apikey_env: environment variable name to read bearer token from
         """
         probe = probe.lower().strip()
@@ -153,7 +153,9 @@ class CLI:
         if probe not in allowed:
             raise ValueError(f"unsupported probe: {probe}")
         
-        
+        if not url:
+            raise ValueError("url is required")
+            
         base_url = url
         from importlib.resources import files as _files
         script_path = _files("eigenpuls.eigenpuls.resources").joinpath(self.client_script_name())
