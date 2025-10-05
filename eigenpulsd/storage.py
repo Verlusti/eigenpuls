@@ -19,7 +19,7 @@ def _shared_name() -> str:
     if _STORE_NAME:
         return _STORE_NAME
     try:
-        from .config import AppConfig
+        from eigenpulsd.config import AppConfig
         cfg = AppConfig()
         _STORE_NAME = cfg.shared_name
         return _STORE_NAME

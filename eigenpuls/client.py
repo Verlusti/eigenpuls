@@ -6,7 +6,7 @@ import urllib.error
 from typing import Any, Dict, Optional
 import asyncio
 
-from .service import (
+from eigenpuls.service import (
     ServiceResponse,
     ServiceListResponse,
     ServiceWorkerResponse,

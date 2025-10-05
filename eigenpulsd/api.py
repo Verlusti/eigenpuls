@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from eigenpuls.config import AppConfig, get_app_config
+from eigenpulsd.config import AppConfig, get_app_config
 from eigenpuls.service import Service, ServiceResponse, ServiceListResponse, ServiceWorkerResponse, ServiceStatus, ServiceStatusHealth, ServiceConfig, ServiceMode, ServiceStatusList
 from datetime import datetime, timezone
 import time
@@ -12,7 +12,7 @@ import asyncio
 from contextlib import asynccontextmanager
 import threading
 
-from eigenpuls.storage import init_store, get_store, with_store_lock
+from eigenpulsd.storage import init_store, get_store, with_store_lock
 
 import logging
 logger = logging.getLogger("uvicorn.error")

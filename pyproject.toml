@@ -28,14 +28,15 @@ dependencies = [
   "pydantic",
   "pydantic-settings",
   "fire",
-  
+  "setuptools-scm"  
 ]
 
 [project.scripts]
 eigenpuls = "eigenpuls.__main__:main"
+eigenpulsd = "eigenpulsd.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["eigenpuls*"]
+include = ["eigenpuls*", "eigenpulsd*"]
 
 [tool.setuptools.package-data]
 eigenpuls = ["resources/*"]

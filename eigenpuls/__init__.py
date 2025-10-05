@@ -10,7 +10,7 @@ __version__: str = "0.0.0"
 __version_source__: str = "unknown"
 
 try:
-    from importlib.metadata import version as _pkg_version    
+    from importlib.metadata import version as _pkg_version
     __version__ = _pkg_version("eigenpuls")
     __version_source__ = "metadata"
 

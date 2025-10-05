@@ -13,12 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy project files
 COPY pyproject.toml README.md /app/
 COPY eigenpuls /app/eigenpuls
+COPY eigenpulsd /app/eigenpulsd
 
-# Install app
-RUN pip install --upgrade pip && pip install --no-cache-dir .
+# Install app with server extras
+RUN pip install --upgrade pip && pip install --no-cache-dir '.[server]'
 
 # Start app
 EXPOSE 4242
-CMD ["python", "-m", "eigenpuls", "serve"]
+CMD ["eigenpulsd", "serve"]
 
 
