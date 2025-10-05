@@ -1,7 +1,7 @@
 #!/bin/sh
-# Auto-pivot to bash pure mode (EIGENPULS_USE_BASH=1) if bash is available
-if [ -z "${BASH_VERSION:-}" ] && [ "${EIGENPULS_USE_BASH:-0}" = "1" ] && command -v bash >/dev/null 2>&1; then
-    exec bash "$0" "$@"
+# Auto-pivot to bash pure mode if bash is available. USE_BASH is an internal marker to avoid loops.
+if [ -z "${BASH_VERSION:-}" ] && command -v bash >/dev/null 2>&1 && [ "${USE_BASH:-0}" != "1" ]; then
+    USE_BASH=1 exec bash "$0" "$@"
 fi
 # POSIX sh hybrid client: prefers curl, falls back to wget. No bash required.
 
@@ -80,8 +80,8 @@ probe_rabbitmq() {
     echo "rabbitmq tcp probe not supported without nc/curl/wget status; use http mgmt if available"; return 2
 }
 
-# --- Optional pure-bash implementations (enabled by EIGENPULS_USE_BASH=1) ---
-if [ -n "${BASH_VERSION:-}" ] && [ "${EIGENPULS_USE_BASH:-0}" = "1" ]; then
+# --- Optional pure-bash implementations (enabled automatically via USE_BASH marker) ---
+if [ -n "${BASH_VERSION:-}" ] && [ "${USE_BASH:-0}" = "1" ]; then
     # Pure bash URL parse (sets _scheme _host _port _path)
     eigenpuls_url_parse() {
         local url="$1"
