@@ -1,11 +1,14 @@
 # Variables
 # Derive version from Python package (__version__) only
-VERSION := $(shell python -c 'import importlib;\
-try:\n m=importlib.import_module("eigenpuls"); print(getattr(m,"__version__",""))\nexcept Exception:\n print("")' 2>/dev/null)
-# Fallback if __version__ is unavailable
+VERSION := $(shell python -c "import eigenpuls; print(eigenpuls.__version__)" 2>/dev/null)
 ifeq ($(strip $(VERSION)),)
-  VERSION := 0.0.0
+  $(error VERSION is empty; ensure eigenpuls is importable and __version__ is set)
 endif
+ifeq ($(VERSION),0.0.0)
+  $(error Invalid VERSION: 0.0.0; set a proper version or tag before running Make targets)
+endif
+# Compute NEXT_VERSION by bumping patch of VERSION (override if needed)
+NEXT_VERSION ?= $(shell python -c "import eigenpuls,re; v=eigenpuls.__version__; m=re.match(r'^v?(\\d+)\\.(\\d+)\\.(\\d+)', v or '0.0.0'); maj,mi,pa = m.groups() if m else ('0','0','0'); print(f'{maj}.{mi}.{int(pa)+1}')" 2>/dev/null)
 REGISTRY ?= docker.io
 NAMESPACE ?= verlusti
 IMAGE_NAME ?= eigenpuls
@@ -25,12 +28,14 @@ help:
 	@echo "  build           - Build python sdist/wheel"
 	@echo "  publish         - Publish python package to PyPI (twine)"
 	@echo "  tag             - Create and push git tag v$(VERSION) (uses Python __version__)"
-	@echo "  tag-<ver>       - e.g., make tag-0.2.1 (shorthand for VERSION=<ver>)"
+	@echo "  tag-<ver>       - e.g., make tag-$(NEXT_VERSION) (shorthand for VERSION=<ver>)"
 	@echo "  docker-build    - Build Docker image with :$(DOCKER_VERSION) and :latest"
 	@echo "  docker-tag      - Tag local image to $(IMAGE):$(DOCKER_VERSION) and :latest"
 	@echo "  docker-push     - Push $(IMAGE):$(DOCKER_VERSION) and :latest"
 	@echo "  release         - Tag git, push tag, build & publish PyPI, build & push Docker"
-	@echo "  release-<ver>   - e.g., make release-0.2.1 (shorthand for VERSION=<ver>)"
+	@echo "  release-<ver>   - e.g., make release-$(NEXT_VERSION) (shorthand for VERSION=<ver>)"
+	@echo "  version         - Show current version (from Python __version__)"
+	@echo "  version-source  - Show version and source (metadata|setuptools_scm)"
 
 .PHONY: build
 build:
@@ -76,6 +81,15 @@ docker-push:
 .PHONY: release
 release: tag build publish docker-build docker-tag docker-push
 	@echo "Release completed: $(VERSION)"
+
+# Show current version
+.PHONY: version
+version:
+	@python -c "import eigenpuls; print(eigenpuls.__version__)"
+
+.PHONY: version-source
+version-source:
+	@python -c "import eigenpuls; print(eigenpuls.__version_source__)"
 
 # Convenience pattern targets: make tag-0.2.1 / make release-0.2.1
 .PHONY: tag-%
