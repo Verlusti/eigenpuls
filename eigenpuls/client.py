@@ -20,6 +20,7 @@ class EigenpulsError(Exception):
 
 
 class EigenpulsClient:
+
     def __init__(self, base_url: str = "http://127.0.0.1:4242", apikey: Optional[str] = None, timeout: int = 10):
         self.base_url = base_url.rstrip("/")
         self.apikey = apikey
@@ -28,6 +29,7 @@ class EigenpulsClient:
     # ----------------------
     # Internal HTTP helpers
     # ----------------------
+
     def _headers(self, extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         headers = {"Accept": "application/json"}
         if self.apikey:
@@ -35,6 +37,7 @@ class EigenpulsClient:
         if extra:
             headers.update(extra)
         return headers
+
 
     def _request(self, method: str, path: str, body: Optional[Dict[str, Any]] = None) -> Any:
         url = f"{self.base_url}{path}"
@@ -59,20 +62,25 @@ class EigenpulsClient:
         except urllib.error.URLError as e:
             raise EigenpulsError(str(e)) from None
 
+
     async def _arequest(self, method: str, path: str, body: Optional[Dict[str, Any]] = None) -> Any:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, lambda: self._request(method, path, body))
 
+
     # ------------------
     # Parsing utilities
     # ------------------
+
     @staticmethod
     def _parse_service_response(data: Dict[str, Any]) -> ServiceResponse:
         return ServiceResponse.model_validate(data)
 
+
     @staticmethod
     def _parse_service_list_response(data: Dict[str, Any]) -> ServiceListResponse:
         return ServiceListResponse.model_validate(data)
+
 
     @staticmethod
     def _parse_service_worker_response(data: Dict[str, Any]) -> ServiceWorkerResponse:
@@ -84,18 +92,22 @@ class EigenpulsClient:
     def health(self) -> Dict[str, Any]:
         return self._request("GET", "/health")
 
+
     def list_services(self) -> ServiceListResponse:
         data = self._request("GET", "/health/service")
         return self._parse_service_list_response(data)
+
 
     def get_service(self, service_name: str) -> ServiceResponse:
         data = self._request("GET", f"/health/service/{service_name}")
         return self._parse_service_response(data)
 
+
     def update_config(self, service_name: str, config: ServiceConfig) -> ServiceResponse:
         payload = config.model_dump()
         data = self._request("POST", f"/health/service/{service_name}/config", body=payload)
         return self._parse_service_response(data)
+
 
     def update_worker(self, service_name: str, worker_name: str, health: ServiceStatusHealth) -> ServiceWorkerResponse:
         payload = health.model_dump()
@@ -108,18 +120,22 @@ class EigenpulsClient:
     async def health_async(self) -> Dict[str, Any]:
         return await self._arequest("GET", "/health")
 
+
     async def list_services_async(self) -> ServiceListResponse:
         data = await self._arequest("GET", "/health/service")
         return self._parse_service_list_response(data)
+
 
     async def get_service_async(self, service_name: str) -> ServiceResponse:
         data = await self._arequest("GET", f"/health/service/{service_name}")
         return self._parse_service_response(data)
 
+
     async def update_config_async(self, service_name: str, config: ServiceConfig) -> ServiceResponse:
         payload = config.model_dump()
         data = await self._arequest("POST", f"/health/service/{service_name}/config", body=payload)
         return self._parse_service_response(data)
+
 
     async def update_worker_async(self, service_name: str, worker_name: str, health: ServiceStatusHealth) -> ServiceWorkerResponse:
         payload = health.model_dump()
