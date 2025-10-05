@@ -139,6 +139,7 @@ class CLI:
         port: Optional[int] = None,
         path: Optional[str] = None,
         apikey_env_var: str = "EIGENPULS_APIKEY",
+        script_path: Optional[str] = None,
     ) -> str:
         """Factory: emit a one-liner bash command to run a probe and report.
 
@@ -147,7 +148,9 @@ class CLI:
         - url: eigenpuls base URL
         - host/port/path: probe target (path only for http)
         - apikey_env_var: environment variable name to read bearer token from
+        - script_path: path to the client script (defaults to /opt/eigenpuls-client.sh)
         """
+
         probe = probe.lower().strip()
         allowed = {"postgres", "redis", "rabbitmq", "http", "tcp"}
         if probe not in allowed:
@@ -157,8 +160,7 @@ class CLI:
             raise ValueError("url is required")
 
         base_url = url
-        from importlib.resources import files as _files
-        script_path = _files("eigenpuls.resources").joinpath(self.client_script_name())
+        script_path = script_path or f"/opt/{self.client_script_name()}"
         envs = [
             "ACTION=probe",
             f"PROBE={probe}",
