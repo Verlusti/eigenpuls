@@ -17,9 +17,16 @@ http_post() {
         return 0
     fi
     if have_cmd wget; then
-        hdr1="--header=Content-Type: application/json"
-        if [ -n "$apikey" ]; then hdr2="--header=Authorization: Bearer $apikey"; else hdr2=""; fi
-        wget -qO- $hdr1 $hdr2 --post-data="$body" "$url"
+        if [ -n "$apikey" ]; then
+            wget -qO- \
+              --header="Content-Type: application/json" \
+              --header="Authorization: Bearer $apikey" \
+              --post-data="$body" "$url"
+        else
+            wget -qO- \
+              --header="Content-Type: application/json" \
+              --post-data="$body" "$url"
+        fi
         return 0
     fi
     echo "No HTTP client found (curl/wget)." >&2
