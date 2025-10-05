@@ -177,7 +177,7 @@ class CLI:
             envs.append(f"PROBE_PATH={path}")
         env_str = " ".join(envs)
         cmd = f"bash -lc '{env_str} bash {script_path}'"
-        print(cmd)
+
         return cmd
 
 
