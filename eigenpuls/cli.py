@@ -176,7 +176,8 @@ class CLI:
         if probe == "http" and path:
             envs.append(f"PROBE_PATH={path}")
         env_str = " ".join(envs)
-        cmd = f"bash -lc '{env_str} bash {script_path}'"
+        # POSIX sh-compatible one-liner (no bash required)
+        cmd = f"{env_str} sh {script_path}"
 
         return cmd
 
