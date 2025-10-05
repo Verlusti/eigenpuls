@@ -15,6 +15,9 @@ import fire
 import uvicorn
 
 
+CLIENT_SCRIPT_NAME = "eigenpuls-client.sh"
+
+
 class CLI:
 
     def __init__(self):
@@ -112,13 +115,18 @@ class CLI:
         resp = client.update_worker(service, worker, payload)
         print(resp.model_dump())
 
+    
+    def client_script_name(self) -> str:
+        """Print the name of the embedded client script."""
+
+        return CLIENT_SCRIPT_NAME
 
     def client_script(self) -> str:
         """Print the embedded bash client script to stdout."""
 
         from importlib.resources import files
 
-        return files("eigenpuls.eigenpuls.resources").joinpath("eigenpuls-client.sh").read_text(encoding="utf-8")
+        return files("eigenpuls.eigenpuls.resources").joinpath(self.client_script_name).read_text(encoding="utf-8")
 
 
 def main():
