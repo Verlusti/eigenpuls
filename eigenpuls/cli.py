@@ -146,7 +146,7 @@ class CLI:
         - service/worker: identifiers reported to eigenpuls
         - url: eigenpuls base URL
         - host/port/path: probe target (path only for http)
-        - apikey_env: environment variable name to read bearer token from
+        - apikey_env_var: environment variable name to read bearer token from
         """
         probe = probe.lower().strip()
         allowed = {"postgres", "redis", "rabbitmq", "http", "tcp"}
