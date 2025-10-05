@@ -194,3 +194,10 @@ class ServiceWorkerResponse(BaseModel):
     @classmethod
     def from_worker(cls, worker: str, status: ServiceStatus) -> ServiceWorkerResponse:
         return cls(worker=worker, status=status)
+
+
+class ServiceHealthResponse(BaseModel):
+    ok: bool
+    uptime_seconds: Optional[float] = None
+
+

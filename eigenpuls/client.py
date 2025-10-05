@@ -12,6 +12,7 @@ from eigenpuls.service import (
     ServiceWorkerResponse,
     ServiceStatusHealth,
     ServiceConfig,
+    ServiceHealthResponse,
 )
 
 
@@ -89,7 +90,8 @@ class EigenpulsClient:
     # -------------
     # Sync methods
     # -------------
-    def health(self) -> Dict[str, Any]:
+
+    def health(self) -> ServiceHealthResponse:
         return self._request("GET", "/health")
 
 
@@ -117,7 +119,8 @@ class EigenpulsClient:
     # --------------
     # Async methods
     # --------------
-    async def health_async(self) -> Dict[str, Any]:
+
+    async def health_async(self) -> ServiceHealthResponse:
         return await self._arequest("GET", "/health")
 
 

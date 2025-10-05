@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import eigenpuls
 from eigenpulsd.config import get_app_config
-from eigenpuls.service import Service, ServiceResponse, ServiceListResponse, ServiceWorkerResponse, ServiceStatus, ServiceStatusHealth, ServiceConfig, ServiceMode, ServiceStatusList
+from eigenpuls.service import Service, ServiceResponse, ServiceListResponse, ServiceWorkerResponse, ServiceStatus, ServiceStatusHealth, ServiceConfig, ServiceMode, ServiceStatusList, ServiceHealthResponse
 from datetime import datetime, timezone
 import time
 
@@ -216,10 +216,10 @@ def _store_update_config(service_name: str, config: ServiceConfig) -> Service:
 
 
 @app.get("/health")
-async def health():
-    # Own health check, api is healthy
+async def health() -> ServiceHealthResponse:
+    # Own health check, api is healthy, return uptime of local process
     uptime = _get_uptime_seconds()
-    return {"ok": True, "uptime_seconds": uptime}
+    return ServiceHealthResponse(ok=True, uptime_seconds=uptime)
 
 
 @app.get("/health/service")
