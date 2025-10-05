@@ -129,6 +129,54 @@ class CLI:
         return files("eigenpuls.resources").joinpath(self.client_script_name()).read_text(encoding="utf-8")
 
 
+    def probe_cmd(
+        self,
+        probe: str,
+        service: str,
+        worker: str,
+        url: str,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        path: Optional[str] = None,
+        apikey_env_var: str = "EIGENPULS_APIKEY",
+    ) -> str:
+        """Factory: emit a one-liner bash command to run a probe and report.
+
+        - probe: postgres|redis|rabbitmq|http|tcp
+        - service/worker: identifiers reported to eigenpuls
+        - host/port/path: probe target (path only for http)
+        - url: eigenpuls base URL (defaults to http://{host}:{port} from config)
+        - apikey_env: environment variable name to read bearer token from
+        """
+        probe = probe.lower().strip()
+        allowed = {"postgres", "redis", "rabbitmq", "http", "tcp"}
+        if probe not in allowed:
+            raise ValueError(f"unsupported probe: {probe}")
+        
+        
+        base_url = url
+        from importlib.resources import files as _files
+        script_path = _files("eigenpuls.eigenpuls.resources").joinpath(self.client_script_name())
+        envs = [
+            "ACTION=probe",
+            f"PROBE={probe}",
+            f"SERVICE={service}",
+            f"WORKER={worker}",
+            f"EIGENPULS_URL={base_url}",
+            f"EIGENPULS_APIKEY=\${apikey_env_var}",
+        ]
+        if host:
+            envs.append(f"PROBE_HOST={host}")
+        if port is not None:
+            envs.append(f"PROBE_PORT={port}")
+        if probe == "http" and path:
+            envs.append(f"PROBE_PATH={path}")
+        env_str = " ".join(envs)
+        cmd = f"bash -lc '{env_str} bash {script_path}'"
+        print(cmd)
+        return cmd
+
+
 def main():
     os.environ["PAGER"] = "cat"
     fire.Fire(CLI)
