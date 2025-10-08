@@ -96,10 +96,7 @@ COPY --from=builder /usr/lib64/libreadline.so.6* /usr/local/lib/
 COPY --from=builder /lib64/libtinfo.so.5* /usr/local/lib/
 COPY --from=builder ${OPENSSL_PREFIX}/lib/libssl.so* /usr/local/lib/
 COPY --from=builder ${OPENSSL_PREFIX}/lib/libcrypto.so* /usr/local/lib/
-RUN mkdir -p ${PY_PREFIX}/bin ${PY_PREFIX}/lib ${PY_PREFIX}/lib/python${PY_VER_SHORT}
-COPY --from=builder ${PY_PREFIX}/bin/python${PY_VER_SHORT} ${PY_PREFIX}/bin/
-COPY --from=builder ${PY_PREFIX}/lib/libpython${PY_VER_SHORT}.so* ${PY_PREFIX}/lib/
-COPY --from=builder ${PY_PREFIX}/lib/python${PY_VER_SHORT} ${PY_PREFIX}/lib/python${PY_VER_SHORT}
+COPY --from=builder ${PY_PREFIX}/ ${PY_PREFIX}/
 
 # Copy the installed application
 COPY --from=builder /app /app
