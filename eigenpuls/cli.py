@@ -15,6 +15,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import importlib.resources as pkg_resources
+import sys
 
 # External dependencies
 import fire
@@ -175,60 +176,70 @@ class CLI:
             output_path = os.path.join(os.getcwd(), self.client_app_name())
        
         if __pyinstaller_package__:
-            print("Cannot build client binary: I am already a PyInstaller package")
-            
-            print("Copying myself to: ", output_path)
-            shutil.copy(__file__, output_path)
+            print("Cannot build client binary: I am already a PyInstaller package")           
 
             return
         
         else:
-            if not shutil.which("docker"):
-                raise RuntimeError("docker is required to build the client binary")
-
-            # Extract packaged resources to a temporary directory
+            # Build locally using current Python and PyInstaller (no Docker required)
             with tempfile.TemporaryDirectory() as tmp:
                 tmp_path = Path(tmp)
                 res_dir = tmp_path / "res"
-                work_dir = tmp_path / "work"
-                out_dir = work_dir / "dist"
+                build_dir = tmp_path / "build"
+                out_dir = build_dir / "dist"
                 res_dir.mkdir(parents=True, exist_ok=True)
-                work_dir.mkdir(parents=True, exist_ok=True)
+                build_dir.mkdir(parents=True, exist_ok=True)
                 out_dir.mkdir(parents=True, exist_ok=True)
 
-                # Copy resource files
-                for name in [
-                    "pyinstaller.manylinux.Dockerfile",
-                    "eigenpuls-client.spec",
-                    "build_client_binary.sh",
-                ]:
-                    with pkg_resources.files("eigenpuls.resources").joinpath(name).open("rb") as src, \
-                         (res_dir / name).open("wb") as dst:
-                        dst.write(src.read())
+                # Copy only the PyInstaller spec needed for the build
+                spec_name = "eigenpuls-client.spec"
+                with pkg_resources.files("eigenpuls.resources").joinpath(spec_name).open("rb") as src, \
+                     (res_dir / spec_name).open("wb") as dst:
+                    dst.write(src.read())
 
-                # Use prebuilt manylinux-shared builder image (no local build)
-                image_tag = "bashonly/manylinux-shared:manylinux2014-py311"
+                # Expose the installed/package source in the build dir so spec-relative paths resolve
                 try:
-                    subprocess.run(["docker", "pull", image_tag], check=True)
-                except Exception:
-                    pass
+                    import eigenpuls as _pkg  # local import to avoid circulars at module import time
+                    pkg_src = Path(_pkg.__file__).parent
+                except Exception as e:
+                    raise RuntimeError(f"unable to locate eigenpuls package location: {e}")
 
-                # Run container build using resource script inside container
-                container_script = "/res/build_client_binary.sh"
-                uid = os.getuid() if hasattr(os, "getuid") else 0
-                gid = os.getgid() if hasattr(os, "getgid") else 0
+                pkg_link = build_dir / "eigenpuls"
+                if not pkg_link.exists():
+                    try:
+                        pkg_link.symlink_to(pkg_src)
+                    except Exception:
+                        # Symlinks may not be supported; fall back to copytree
+                        shutil.copytree(str(pkg_src), str(pkg_link))
+
+                # Use a local copy of the spec so relative paths resolve against build_dir
+                spec_local = build_dir / spec_name
+                shutil.copy(str(res_dir / spec_name), str(spec_local))
+
+                # Ensure PyInstaller is available; install it if missing
+                env = os.environ.copy()
+                env["PYTHONPATH"] = f"{build_dir}{os.pathsep}{env.get('PYTHONPATH', '')}"
+
+                def _has_pyinstaller() -> bool:
+                    try:
+                        subprocess.run([sys.executable, "-m", "PyInstaller", "--version"],
+                                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        return True
+                    except Exception:
+                        return False
+
+                if not _has_pyinstaller():
+                    subprocess.run([sys.executable, "-m", "pip", "install", "-U", "pip", "pyinstaller"], check=True)
+
+                # Build via PyInstaller using the packaged spec
                 subprocess.run([
-                    "docker", "run", "--rm",
-                    "-v", f"{res_dir}:/res:ro",
-                    "-v", f"{work_dir}:/work",
-                    image_tag,
-                    f"OUT_DIR=/work/dist SPEC_PATH=/res/eigenpuls-client.spec bash {container_script} && chown -R {uid}:{gid} /work"
-                ], check=True)
+                    sys.executable, "-m", "PyInstaller", "--clean", "-y",
+                    "--distpath", str(out_dir), str(spec_local)
+                ], check=True, cwd=str(build_dir), env=env)
 
                 # Locate built artifact
                 artifact = out_dir / CLIENT_APP_NAME
                 if not artifact.exists():
-                    # Fallback: search
                     matches = list(out_dir.rglob(CLIENT_APP_NAME))
                     artifact = matches[0] if matches else None  # type: ignore[assignment]
                 if not artifact or not artifact.exists():  # type: ignore[truthy-bool]
