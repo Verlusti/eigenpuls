@@ -26,6 +26,7 @@ poetry.lock
 # Local config
 config/*.local.yaml
 dist/
+build/
 
 *.egg-info/*
 *.egg-info/

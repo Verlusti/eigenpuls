@@ -8,14 +8,19 @@ server-side dependencies. It is intended for client/automation usage.
 
 from .config import get_app_config
 
+import shutil
 import os
 from typing import Optional
+from pathlib import Path
+import subprocess
+import tempfile
+import importlib.resources as pkg_resources
 
+# External dependencies
 import fire
-import uvicorn
 
 
-CLIENT_SCRIPT_NAME = "eigenpuls-client.sh"
+CLIENT_APP_NAME = "eigenpuls-client"
 
 
 class CLI:
@@ -34,21 +39,6 @@ class CLI:
             return "0+unknown"
 
 
-    def serve(self, host: Optional[str] = None, port: Optional[int] = None) -> None:
-        """Run the eigenpuls API server (requires server extras)."""
-        
-        from eigenpulsd.api import app
-
-        config_model = get_app_config()
-        host = host or config_model.host
-        port = port or config_model.port
-
-        try:
-            uvicorn.run(app, host=host, port=port)
-        except KeyboardInterrupt:
-            pass
-
-
     def list_known_types(self) -> None:
         """List known service types."""
 
@@ -57,6 +47,7 @@ class CLI:
         print("Known service types:")
         for t in ServiceKnownType:
             print(f"  - {t.value}")
+
 
     def service_list(self, url: Optional[str] = None, apikey: Optional[str] = None) -> None:
         """Fetch and print the service list from a running eigenpuls server."""
@@ -116,17 +107,10 @@ class CLI:
         print(resp.model_dump())
 
     
-    def client_script_name(self) -> str:
-        """Print the name of the embedded client script."""
+    def client_app_name(self) -> str:
+        """Print the name of the embedded client application."""
 
-        return CLIENT_SCRIPT_NAME
-
-    def client_script(self) -> str:
-        """Print the embedded bash client script to stdout."""
-
-        from importlib.resources import files
-
-        return files("eigenpuls.resources").joinpath(self.client_script_name()).read_text(encoding="utf-8")
+        return CLIENT_APP_NAME
 
 
     def probe_cmd(
@@ -167,7 +151,7 @@ class CLI:
             f"SERVICE={service}",
             f"WORKER={worker}",
             f"EIGENPULS_URL={base_url}",
-            f"EIGENPULS_APIKEY=\${apikey_env_var}",
+            f"EIGENPULS_APIKEY=${{{apikey_env_var}}}",
         ]
         if host:
             envs.append(f"PROBE_HOST={host}")
@@ -180,6 +164,78 @@ class CLI:
         cmd = f"{env_str} sh {script_path}"
 
         return cmd
+
+    def build_client_binary(self, output_path: Optional[str] = None) -> None:
+        """Build the client binary."""
+        
+        from .__init__ import __pyinstaller_package__
+
+        if not output_path:
+            # determine by cwd and client app name
+            output_path = os.path.join(os.getcwd(), self.client_app_name())
+       
+        if __pyinstaller_package__:
+            print("Cannot build client binary: I am already a PyInstaller package")
+            
+            print("Copying myself to: ", output_path)
+            shutil.copy(__file__, output_path)
+
+            return
+        
+        else:
+            if not shutil.which("docker"):
+                raise RuntimeError("docker is required to build the client binary")
+
+            # Extract packaged resources to a temporary directory
+            with tempfile.TemporaryDirectory() as tmp:
+                tmp_path = Path(tmp)
+                res_dir = tmp_path / "res"
+                work_dir = tmp_path / "work"
+                out_dir = work_dir / "dist"
+                res_dir.mkdir(parents=True, exist_ok=True)
+                work_dir.mkdir(parents=True, exist_ok=True)
+                out_dir.mkdir(parents=True, exist_ok=True)
+
+                # Copy resource files
+                for name in [
+                    "pyinstaller.manylinux.Dockerfile",
+                    "eigenpuls-client.spec",
+                    "build_client_binary.sh",
+                ]:
+                    with pkg_resources.files("eigenpuls.resources").joinpath(name).open("rb") as src, \
+                         (res_dir / name).open("wb") as dst:
+                        dst.write(src.read())
+
+                # Use prebuilt manylinux-shared builder image (no local build)
+                image_tag = "bashonly/manylinux-shared:manylinux2014-py311"
+                try:
+                    subprocess.run(["docker", "pull", image_tag], check=True)
+                except Exception:
+                    pass
+
+                # Run container build using resource script inside container
+                container_script = "/res/build_client_binary.sh"
+                uid = os.getuid() if hasattr(os, "getuid") else 0
+                gid = os.getgid() if hasattr(os, "getgid") else 0
+                subprocess.run([
+                    "docker", "run", "--rm",
+                    "-v", f"{res_dir}:/res:ro",
+                    "-v", f"{work_dir}:/work",
+                    image_tag,
+                    f"OUT_DIR=/work/dist SPEC_PATH=/res/eigenpuls-client.spec bash {container_script} && chown -R {uid}:{gid} /work"
+                ], check=True)
+
+                # Locate built artifact
+                artifact = out_dir / CLIENT_APP_NAME
+                if not artifact.exists():
+                    # Fallback: search
+                    matches = list(out_dir.rglob(CLIENT_APP_NAME))
+                    artifact = matches[0] if matches else None  # type: ignore[assignment]
+                if not artifact or not artifact.exists():  # type: ignore[truthy-bool]
+                    raise RuntimeError("unable to locate built client artifact in output directory")
+
+                shutil.copy(str(artifact), output_path)
+                print(f"Built client binary -> {output_path}")
 
 
 def main():

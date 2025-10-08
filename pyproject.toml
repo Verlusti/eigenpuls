@@ -28,7 +28,8 @@ dependencies = [
   "pydantic",
   "pydantic-settings",
   "fire",
-  "setuptools-scm"  
+  "setuptools-scm",
+  "pyinstaller"  
 ]
 
 [project.scripts]

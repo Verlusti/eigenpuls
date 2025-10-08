@@ -6,6 +6,8 @@ Strict rule:
 3) If neither works: fail fast with a clear error
 """
 
+import sys
+
 __version__: str = "0.0.0"
 __version_source__: str = "unknown"
 
@@ -28,3 +30,12 @@ except Exception:
         raise RuntimeError(
             "Unable to determine eigenpuls version. Ensure the package is installed or setuptools_scm is available."
         ) from _e
+
+
+def _is_pyinstaller_package() -> bool:
+    """Check if the package is being packaged by PyInstaller."""
+    
+    return getattr(sys, "frozen", False)
+
+
+__pyinstaller_package__: bool = _is_pyinstaller_package()
